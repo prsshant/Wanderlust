@@ -1,0 +1,416 @@
+{
+  "info": {
+    "_postman_id": "7f8b9a10-4c3e-4d2b-91d5-8f6a3b2c1e09",
+    "name": "Travel Booking Platform API Collection",
+    "description": "Comprehensive Postman & Thunder Client collection for the Travel Booking Platform (Node.js, Express, MongoDB, Multer). Includes Authentication, Trip Packages CRUD, Bookings with Multiple Document Uploads, and Overlap Prevention.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001/api",
+      "type": "string"
+    },
+    {
+      "key": "customerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "agentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "packageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. System Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"customer\",\n  \"phone\": \"+1 555-0100\",\n  \"address\": \"123 Ocean Ave, Miami, FL\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login as Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('customerToken', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@gmail.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login as Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('agentToken', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"agent@travel.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Trip Packages",
+      "item": [
+        {
+          "name": "Get All Trip Packages (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/packages",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages"]
+            }
+          }
+        },
+        {
+          "name": "Filter Packages by Destination or Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/packages?destination=Switzerland&minPrice=1000",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages"],
+              "query": [
+                { "key": "destination", "value": "Switzerland" },
+                { "key": "minPrice", "value": "1000" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Package Details by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/packages/{{packageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages", "{{packageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Package (Agent Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{agentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Iceland Northern Lights & Glaciers\",\n  \"destination\": \"Reykjavik, Iceland\",\n  \"description\": \"Witness the magical aurora borealis, explore volcanic ice caves, and unwind in the geothermal Blue Lagoon.\",\n  \"price\": 2150,\n  \"startDate\": \"2026-11-15T00:00:00.000Z\",\n  \"endDate\": \"2026-11-22T00:00:00.000Z\",\n  \"capacity\": 14,\n  \"imageUrl\": \"https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1200&q=80\",\n  \"itinerary\": [\n    { \"day\": 1, \"activity\": \"Arrival in Reykjavik, Blue Lagoon evening bath.\" },\n    { \"day\": 2, \"activity\": \"Golden Circle tour: Gullfoss waterfall & Geysir.\" },\n    { \"day\": 3, \"activity\": \"Vatnajokull Glacier ice caving & Northern Lights hunt.\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/packages",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages"]
+            }
+          }
+        },
+        {
+          "name": "Update Package (Agent Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{agentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1999,\n  \"capacity\": 16\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/packages/{{packageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages", "{{packageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Package (Agent Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{agentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/packages/{{packageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["packages", "{{packageId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Bookings & Multer Uploads",
+      "item": [
+        {
+          "name": "Create Booking with Multer Documents (Customer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "tripPackageId", "value": "{{packageId}}", "type": "text" },
+                { "key": "travelStartDate", "value": "2026-10-15", "type": "text" },
+                { "key": "travelEndDate", "value": "2026-10-22", "type": "text" },
+                { "key": "seatsBooked", "value": "2", "type": "text" },
+                { "key": "contactPhone", "value": "+1 555-0144", "type": "text" },
+                { "key": "specialRequests", "value": "Vegetarian meals and window seats", "type": "text" },
+                { "key": "documents", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            }
+          }
+        },
+        {
+          "name": "Create Duplicate Overlapping Booking (Expect 400 Validation Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "tripPackageId", "value": "{{packageId}}", "type": "text" },
+                { "key": "travelStartDate", "value": "2026-10-18", "type": "text" },
+                { "key": "travelEndDate", "value": "2026-10-25", "type": "text" },
+                { "key": "seatsBooked", "value": "1", "type": "text" },
+                { "key": "documents", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            }
+          }
+        },
+        {
+          "name": "Get Customer My Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "my"]
+            }
+          }
+        },
+        {
+          "name": "Get All Bookings & Review Documents (Agent Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{agentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"]
+            }
+          }
+        },
+        {
+          "name": "Update Booking Status (Agent Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{agentToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking (Customer or Agent)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}", "cancel"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

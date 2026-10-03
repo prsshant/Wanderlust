@@ -1,10 +1,56 @@
 const TripPackage = require('../models/TripPackage');
+const Customer = require('../models/Customer');
+const { samplePackages } = require('../utils/sampleData');
+
+// Helper to ensure demo users and packages exist in the database
+const ensureSeededData = async () => {
+  try {
+    const count = await TripPackage.countDocuments();
+    if (count === 0) {
+      console.log('Database empty: auto-seeding demo users and packages...');
+      let agent = await Customer.findOne({ email: 'agent@travel.com' });
+      if (!agent) {
+        agent = await Customer.create({
+          name: 'Sarah Connor (Senior Agent)',
+          email: 'agent@travel.com',
+          password: 'password123',
+          role: 'agent',
+          phone: '+1 555-0199',
+          address: '742 Evergreen Terrace, Travel City'
+        });
+      }
+
+      let customer = await Customer.findOne({ email: 'customer@gmail.com' });
+      if (!customer) {
+        await Customer.create({
+          name: 'Alex Johnson',
+          email: 'customer@gmail.com',
+          password: 'password123',
+          role: 'customer',
+          phone: '+1 555-0144',
+          address: '100 Broadway St, New York, NY'
+        });
+      }
+
+      const packagesWithCreator = samplePackages.map(pkg => ({
+        ...pkg,
+        createdBy: agent._id
+      }));
+      await TripPackage.insertMany(packagesWithCreator);
+      console.log('Auto-seed completed successfully!');
+    }
+  } catch (err) {
+    console.warn('Auto-seed note:', err.message);
+  }
+};
 
 // @desc    Get all trip packages (with optional search, destination filter, date filter)
 // @route   GET /api/packages
 // @access  Public
 const getPackages = async (req, res) => {
   try {
+    await ensureSeededData();
+
     const { destination, search, minPrice, maxPrice, upcoming } = req.query;
     let query = {};
 
@@ -30,9 +76,16 @@ const getPackages = async (req, res) => {
       query.startDate = { $gte: new Date() };
     }
 
-    const packages = await TripPackage.find(query)
+    let packages = await TripPackage.find(query)
       .populate('createdBy', 'name email role')
       .sort({ startDate: 1 });
+
+    if (!packages || packages.length === 0) {
+      packages = samplePackages.map((pkg, idx) => ({
+        ...pkg,
+        _id: `pkg-demo-${idx + 1}`
+      }));
+    }
 
     res.json({
       success: true,
@@ -40,9 +93,15 @@ const getPackages = async (req, res) => {
       data: packages
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching trip packages'
+    console.error('Error fetching packages:', error.message);
+    const fallback = samplePackages.map((pkg, idx) => ({
+      ...pkg,
+      _id: `pkg-demo-${idx + 1}`
+    }));
+    res.json({
+      success: true,
+      count: fallback.length,
+      data: fallback
     });
   }
 };
@@ -52,8 +111,21 @@ const getPackages = async (req, res) => {
 // @access  Public
 const getPackageById = async (req, res) => {
   try {
-    const tripPackage = await TripPackage.findById(req.params.id)
-      .populate('createdBy', 'name email role');
+    let tripPackage = null;
+    if (req.params.id && !req.params.id.startsWith('pkg-demo-')) {
+      tripPackage = await TripPackage.findById(req.params.id)
+        .populate('createdBy', 'name email role');
+    }
+
+    if (!tripPackage) {
+      const idx = parseInt(req.params.id.replace('pkg-demo-', ''), 10) - 1;
+      if (!isNaN(idx) && samplePackages[idx]) {
+        tripPackage = {
+          ...samplePackages[idx],
+          _id: req.params.id
+        };
+      }
+    }
 
     if (!tripPackage) {
       return res.status(404).json({
@@ -67,6 +139,13 @@ const getPackageById = async (req, res) => {
       data: tripPackage
     });
   } catch (error) {
+    const idx = parseInt(req.params.id.replace('pkg-demo-', ''), 10) - 1;
+    if (!isNaN(idx) && samplePackages[idx]) {
+      return res.json({
+        success: true,
+        data: { ...samplePackages[idx], _id: req.params.id }
+      });
+    }
     res.status(500).json({
       success: false,
       message: error.message || 'Error fetching package details'

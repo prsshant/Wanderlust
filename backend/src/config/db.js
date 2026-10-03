@@ -7,9 +7,14 @@ const connectDB = async () => {
     return;
   }
 
+  if (process.env.VERCEL && !process.env.MONGO_URI) {
+    console.warn('⚠️ MONGO_URI is not set in Vercel environment variables.');
+    return;
+  }
+
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/travel_booking_platform', {
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 4000
     });
     isConnected = true;
     console.log(`MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);

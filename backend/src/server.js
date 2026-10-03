@@ -17,6 +17,18 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serverless DB connection middleware
+app.use(async (req, res, next) => {
+  if (process.env.MONGO_URI) {
+    try {
+      await connectDB();
+    } catch (e) {
+      console.warn('DB connect warning:', e.message);
+    }
+  }
+  next();
+});
+
 // Serve uploaded identity documents statically so agents can review them
 const uploadDir = path.resolve(
   process.env.UPLOAD_PATH || (process.env.VERCEL ? '/tmp/uploads' : 'uploads')

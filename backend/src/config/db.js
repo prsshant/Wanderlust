@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 
+// Disable buffering so queries fail immediately or fallback instead of freezing for 10s
+mongoose.set('bufferCommands', false);
+
 let isConnected = false;
 
 const connectDB = async () => {

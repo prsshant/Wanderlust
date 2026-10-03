@@ -18,7 +18,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve uploaded identity documents statically so agents can review them
-const uploadDir = path.resolve(process.env.UPLOAD_PATH || 'uploads');
+const uploadDir = path.resolve(
+  process.env.UPLOAD_PATH || (process.env.VERCEL ? '/tmp/uploads' : 'uploads')
+);
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (e) {
+  // Ignore in read-only environment
+}
 app.use('/uploads', express.static(uploadDir));
 
 // API Health Check
@@ -80,15 +89,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
-  console.log(`===============================================`);
-  console.log(`Travel Booking Platform Server is running`);
-  console.log(`Port: ${PORT}`);
-  console.log(`Uploads serving at: http://localhost:${PORT}/uploads`);
-  console.log(`API Health: http://localhost:${PORT}/api/health`);
-  console.log(`===============================================`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`===============================================`);
+    console.log(`Travel Booking Platform Server is running`);
+    console.log(`Port: ${PORT}`);
+    console.log(`Uploads serving at: http://localhost:${PORT}/uploads`);
+    console.log(`API Health: http://localhost:${PORT}/api/health`);
+    console.log(`===============================================`);
+  });
+}
 
 module.exports = app;

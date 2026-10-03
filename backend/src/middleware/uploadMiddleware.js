@@ -3,9 +3,15 @@ const path = require('path');
 const fs = require('fs');
 
 // Ensure upload directory exists
-const uploadDir = path.resolve(process.env.UPLOAD_PATH || 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const uploadDir = path.resolve(
+  process.env.UPLOAD_PATH || (process.env.VERCEL ? '/tmp/uploads' : 'uploads')
+);
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn('Upload directory note:', e.message);
 }
 
 // Storage configuration

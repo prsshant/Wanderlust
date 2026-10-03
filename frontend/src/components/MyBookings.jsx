@@ -149,7 +149,7 @@ export default function MyBookings() {
                     b.documentPaths.map((docPath, i) => (
                       <a
                         key={i}
-                        href={`http://localhost:5001/${docPath}`}
+                        href={`/${docPath}`}
                         target="_blank"
                         rel="noreferrer"
                         className="doc-pill"

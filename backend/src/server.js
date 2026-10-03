@@ -91,7 +91,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5001;
 
-if (require.main === module) {
+if (require.main === module || process.env.PORT) {
   app.listen(PORT, () => {
     console.log(`===============================================`);
     console.log(`Travel Booking Platform Server is running`);

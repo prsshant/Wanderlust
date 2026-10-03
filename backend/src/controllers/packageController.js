@@ -4,6 +4,7 @@ const { samplePackages } = require('../utils/sampleData');
 
 // Helper to ensure demo users and packages exist in the database
 const ensureSeededData = async () => {
+  if (mongoose.connection.readyState < 1) return;
   try {
     const count = await TripPackage.countDocuments();
     if (count === 0) {
@@ -49,8 +50,6 @@ const ensureSeededData = async () => {
 // @access  Public
 const getPackages = async (req, res) => {
   try {
-    await ensureSeededData();
-
     const { destination, search, minPrice, maxPrice, upcoming } = req.query;
     let query = {};
 
@@ -76,11 +75,16 @@ const getPackages = async (req, res) => {
       query.startDate = { $gte: new Date() };
     }
 
-    let packages = await TripPackage.find(query)
-      .populate('createdBy', 'name email role')
-      .sort({ startDate: 1 });
+    let packages = [];
+    if (mongoose.connection.readyState >= 1) {
+      await ensureSeededData();
+      packages = await TripPackage.find(query)
+        .populate('createdBy', 'name email role')
+        .sort({ startDate: 1 });
+    }
 
-    if (!packages || packages.length === 0) {
+    // Only fallback to samplePackages if DB returned nothing and no query filter is active
+    if ((!packages || packages.length === 0) && Object.keys(query).length === 0) {
       packages = samplePackages.map((pkg, idx) => ({
         ...pkg,
         _id: `pkg-demo-${idx + 1}`
@@ -112,7 +116,9 @@ const getPackages = async (req, res) => {
 const getPackageById = async (req, res) => {
   try {
     let tripPackage = null;
-    if (req.params.id && !req.params.id.startsWith('pkg-demo-')) {
+    const isObjectId = mongoose.Types.ObjectId.isValid(req.params.id) && !req.params.id.startsWith('pkg-demo-');
+
+    if (isObjectId && mongoose.connection.readyState >= 1) {
       tripPackage = await TripPackage.findById(req.params.id)
         .populate('createdBy', 'name email role');
     }
@@ -120,10 +126,16 @@ const getPackageById = async (req, res) => {
     if (!tripPackage) {
       const idx = parseInt(req.params.id.replace('pkg-demo-', ''), 10) - 1;
       if (!isNaN(idx) && samplePackages[idx]) {
-        tripPackage = {
-          ...samplePackages[idx],
-          _id: req.params.id
-        };
+        if (mongoose.connection.readyState >= 1) {
+          tripPackage = await TripPackage.findOne({ title: samplePackages[idx].title })
+            .populate('createdBy', 'name email role');
+        }
+        if (!tripPackage) {
+          tripPackage = {
+            ...samplePackages[idx],
+            _id: req.params.id
+          };
+        }
       }
     }
 

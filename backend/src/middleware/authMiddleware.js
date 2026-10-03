@@ -32,6 +32,14 @@ const protect = async (req, res, next) => {
       }
     }
 
+    if (!customer && mongoose.connection.readyState >= 1 && decoded.email) {
+      try {
+        customer = await Customer.findOne({ email: decoded.email }).select('-password');
+      } catch (err) {
+        // Fall back to decoded payload
+      }
+    }
+
     if (!customer) {
       customer = {
         _id: decoded.id,

@@ -23,9 +23,7 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
   } catch (error) {
     console.error(`MongoDB Connection Error: ${error.message}`);
-    if (!process.env.VERCEL) {
-      process.exit(1);
-    }
+    console.warn('Continuing with fallback mode if MongoDB is not reachable...');
   }
 };
 

@@ -45,11 +45,14 @@ app.use('/uploads', express.static(uploadDir));
 
 // API Health Check
 app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
   res.json({
     status: 'online',
     timestamp: new Date().toISOString(),
     service: 'Travel Booking Platform API',
-    mongoConnection: req.app.get('dbStatus') || 'connected'
+    mongoReadyState: mongoose.connection.readyState,
+    mongoConnected: mongoose.connection.readyState === 1,
+    hasMongoUri: Boolean(process.env.MONGO_URI)
   });
 });
 
